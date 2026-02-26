@@ -1,0 +1,44 @@
+# Version control
+.git
+.gitignore
+
+# Environment & secrets
+.env
+
+# Build artifacts
+bin/
+tmp/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test & coverage
+*.test
+*.out
+coverage.html
+coverage.out
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Documentation (not needed in image)
+README.md
+docs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml

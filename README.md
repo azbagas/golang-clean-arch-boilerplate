@@ -196,4 +196,4 @@ make docker-logs
 
 ## 📄 License
 
-MIT
+Licensed under the [MIT License](LICENSE).

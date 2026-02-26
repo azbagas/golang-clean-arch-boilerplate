@@ -65,7 +65,7 @@ func main() {
 	)
 	userHandler := handler.NewUserHandler(userUsecase)
 	secureCookie := cfg.Server.Mode == "production"
-	authHandler := handler.NewAuthHandler(authUsecase, cfg.JWT.RefreshExpiry, secureCookie)
+	authHandler := handler.NewAuthHandler(authUsecase, userUsecase, cfg.JWT.RefreshExpiry, secureCookie)
 
 	// Setup Fiber app
 	app := fiber.New(fiber.Config{

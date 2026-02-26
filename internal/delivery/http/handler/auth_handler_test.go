@@ -18,22 +18,29 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func setupAuthTestApp() (*fiber.App, *mocks.MockAuthUsecase) {
+func setupAuthTestApp() (*fiber.App, *mocks.MockAuthUsecase, *mocks.MockUserUsecase) {
 	app := fiber.New()
-	mockUsecase := new(mocks.MockAuthUsecase)
-	h := handler.NewAuthHandler(mockUsecase, 7*24*time.Hour, false)
+	mockAuthUsecase := new(mocks.MockAuthUsecase)
+	mockUserUsecase := new(mocks.MockUserUsecase)
+	h := handler.NewAuthHandler(mockAuthUsecase, mockUserUsecase, 7*24*time.Hour, false)
 
 	app.Post("/auth/register", h.Register)
 	app.Post("/auth/login", h.Login)
 	app.Post("/auth/refresh", h.Refresh)
 	app.Post("/auth/logout", h.Logout)
+	// Simulate JWT middleware by injecting locals
+	app.Get("/auth/current", func(c *fiber.Ctx) error {
+		c.Locals("user_id", float64(1))
+		c.Locals("email", "john@example.com")
+		return c.Next()
+	}, h.GetCurrent)
 
-	return app, mockUsecase
+	return app, mockAuthUsecase, mockUserUsecase
 }
 
 func TestAuthHandler_Register(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		app, mockUsecase := setupAuthTestApp()
+		app, mockUsecase, _ := setupAuthTestApp()
 		mockUsecase.On("Register", mock.Anything, mock.AnythingOfType("*domain.User")).
 			Return(nil).Once()
 
@@ -53,7 +60,7 @@ func TestAuthHandler_Register(t *testing.T) {
 	})
 
 	t.Run("conflict", func(t *testing.T) {
-		app, mockUsecase := setupAuthTestApp()
+		app, mockUsecase, _ := setupAuthTestApp()
 		mockUsecase.On("Register", mock.Anything, mock.AnythingOfType("*domain.User")).
 			Return(domain.ErrConflict).Once()
 
@@ -68,7 +75,7 @@ func TestAuthHandler_Register(t *testing.T) {
 	})
 
 	t.Run("invalid body", func(t *testing.T) {
-		app, _ := setupAuthTestApp()
+		app, _, _ := setupAuthTestApp()
 		body := `not valid json`
 		req := httptest.NewRequest(http.MethodPost, "/auth/register", bytes.NewReader([]byte(body)))
 		req.Header.Set("Content-Type", "application/json")
@@ -81,7 +88,7 @@ func TestAuthHandler_Register(t *testing.T) {
 
 func TestAuthHandler_Login(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		app, mockUsecase := setupAuthTestApp()
+		app, mockUsecase, _ := setupAuthTestApp()
 		tokenPair := &domain.TokenPair{
 			AccessToken:  "access-token-here",
 			RefreshToken: "refresh-token-here",
@@ -97,7 +104,6 @@ func TestAuthHandler_Login(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		// Check response has access_token but NOT refresh_token
 		var res response.SuccessResponse
 		respBody, _ := io.ReadAll(resp.Body)
 		json.Unmarshal(respBody, &res)
@@ -120,7 +126,7 @@ func TestAuthHandler_Login(t *testing.T) {
 	})
 
 	t.Run("unauthorized", func(t *testing.T) {
-		app, mockUsecase := setupAuthTestApp()
+		app, mockUsecase, _ := setupAuthTestApp()
 		mockUsecase.On("Login", mock.Anything, "john@example.com", "wrongpassword").
 			Return(nil, domain.ErrUnauthorized).Once()
 
@@ -135,7 +141,7 @@ func TestAuthHandler_Login(t *testing.T) {
 	})
 
 	t.Run("invalid body", func(t *testing.T) {
-		app, _ := setupAuthTestApp()
+		app, _, _ := setupAuthTestApp()
 		body := `not valid json`
 		req := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewReader([]byte(body)))
 		req.Header.Set("Content-Type", "application/json")
@@ -148,7 +154,7 @@ func TestAuthHandler_Login(t *testing.T) {
 
 func TestAuthHandler_Refresh(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		app, mockUsecase := setupAuthTestApp()
+		app, mockUsecase, _ := setupAuthTestApp()
 		newPair := &domain.TokenPair{
 			AccessToken:  "new-access-token",
 			RefreshToken: "new-refresh-token",
@@ -163,7 +169,6 @@ func TestAuthHandler_Refresh(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		// Check new cookie was set
 		cookies := resp.Cookies()
 		var refreshCookie *http.Cookie
 		for _, c := range cookies {
@@ -178,7 +183,7 @@ func TestAuthHandler_Refresh(t *testing.T) {
 	})
 
 	t.Run("no cookie", func(t *testing.T) {
-		app, _ := setupAuthTestApp()
+		app, _, _ := setupAuthTestApp()
 		req := httptest.NewRequest(http.MethodPost, "/auth/refresh", nil)
 
 		resp, err := app.Test(req)
@@ -187,7 +192,7 @@ func TestAuthHandler_Refresh(t *testing.T) {
 	})
 
 	t.Run("invalid token", func(t *testing.T) {
-		app, mockUsecase := setupAuthTestApp()
+		app, mockUsecase, _ := setupAuthTestApp()
 		mockUsecase.On("Refresh", mock.Anything, "invalid-token").
 			Return(nil, domain.ErrUnauthorized).Once()
 
@@ -203,7 +208,7 @@ func TestAuthHandler_Refresh(t *testing.T) {
 
 func TestAuthHandler_Logout(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		app, mockUsecase := setupAuthTestApp()
+		app, mockUsecase, _ := setupAuthTestApp()
 		mockUsecase.On("Logout", mock.Anything, "some-refresh-token").
 			Return(nil).Once()
 
@@ -214,7 +219,6 @@ func TestAuthHandler_Logout(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		// Check cookie was cleared (MaxAge = -1 or empty value)
 		cookies := resp.Cookies()
 		var refreshCookie *http.Cookie
 		for _, c := range cookies {
@@ -229,7 +233,7 @@ func TestAuthHandler_Logout(t *testing.T) {
 	})
 
 	t.Run("no cookie", func(t *testing.T) {
-		app, mockUsecase := setupAuthTestApp()
+		app, mockUsecase, _ := setupAuthTestApp()
 		mockUsecase.On("Logout", mock.Anything, "").
 			Return(nil).Once()
 
@@ -239,5 +243,24 @@ func TestAuthHandler_Logout(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		mockUsecase.AssertExpectations(t)
+	})
+}
+
+func TestAuthHandler_GetCurrent(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		app, _, mockUserUsecase := setupAuthTestApp()
+		user := &domain.User{
+			ID:    1,
+			Name:  "John Doe",
+			Email: "john@example.com",
+		}
+		mockUserUsecase.On("GetByID", mock.Anything, uint(1)).Return(user, nil).Once()
+
+		req := httptest.NewRequest(http.MethodGet, "/auth/current", nil)
+
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		mockUserUsecase.AssertExpectations(t)
 	})
 }

@@ -32,8 +32,9 @@ func NewRouter(
 	auth.Post("/login", authHandler.Login)
 	auth.Post("/refresh", authHandler.Refresh)
 
-	// Logout requires valid access token
+	// Logout and current user require valid access token
 	auth.Post("/logout", middleware.JWTMiddleware(jwtSecret), authHandler.Logout)
+	auth.Get("/current", middleware.JWTMiddleware(jwtSecret), authHandler.GetCurrent)
 
 	// User routes (protected)
 	users := v1.Group("/users", middleware.JWTMiddleware(jwtSecret))

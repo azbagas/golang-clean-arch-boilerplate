@@ -98,8 +98,9 @@ The API uses **short-lived access tokens** (JWT, 15 min) and **long-lived refres
 1. POST /api/v1/auth/register  →  Create account
 2. POST /api/v1/auth/login     →  Get access_token (JSON) + refresh_token (HttpOnly cookie)
 3. Use access_token in Authorization: Bearer <token> header
-4. POST /api/v1/auth/refresh   →  Exchange cookie for new token pair (rotation)
-5. POST /api/v1/auth/logout    →  Revoke refresh token + clear cookie
+4. GET  /api/v1/auth/current   →  Get current user profile
+5. POST /api/v1/auth/refresh   →  Exchange cookie for new token pair (rotation)
+6. POST /api/v1/auth/logout    →  Revoke refresh token + clear cookie
 ```
 
 **Security features:**
@@ -122,6 +123,7 @@ The API uses **short-lived access tokens** (JWT, 15 min) and **long-lived refres
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| GET | `/api/v1/auth/current` | Get current user profile |
 | POST | `/api/v1/auth/logout` | Logout → revoke refresh token |
 
 ### Users (Protected - JWT Required)

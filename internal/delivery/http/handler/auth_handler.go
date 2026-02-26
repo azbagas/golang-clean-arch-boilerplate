@@ -14,15 +14,17 @@ import (
 // AuthHandler handles HTTP requests for authentication.
 type AuthHandler struct {
 	authUsecase   domain.AuthUsecase
+	userUsecase   domain.UserUsecase
 	validate      *validator.Validate
 	refreshExpiry time.Duration
 	secureCookie  bool
 }
 
 // NewAuthHandler creates a new AuthHandler instance.
-func NewAuthHandler(authUsecase domain.AuthUsecase, refreshExpiry time.Duration, secureCookie bool) *AuthHandler {
+func NewAuthHandler(authUsecase domain.AuthUsecase, userUsecase domain.UserUsecase, refreshExpiry time.Duration, secureCookie bool) *AuthHandler {
 	return &AuthHandler{
 		authUsecase:   authUsecase,
+		userUsecase:   userUsecase,
 		validate:      validator.New(),
 		refreshExpiry: refreshExpiry,
 		secureCookie:  secureCookie,
@@ -148,6 +150,36 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 
 	return response.Success(c, http.StatusOK, dto.LogoutResponse{
 		Message: "User logged out successfully",
+	})
+}
+
+// GetCurrent godoc
+// @Summary      Get current user
+// @Description  Get the profile of the currently authenticated user
+// @Tags         auth
+// @Produce      json
+// @Success      200 {object} response.SuccessResponse{data=dto.UserResponse}
+// @Failure      401 {object} response.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/v1/auth/current [get]
+func (h *AuthHandler) GetCurrent(c *fiber.Ctx) error {
+	userIDFloat, ok := c.Locals("user_id").(float64)
+	if !ok {
+		return response.ErrorWithMessage(c, http.StatusUnauthorized, "invalid user identity")
+	}
+	userID := uint(userIDFloat)
+
+	user, err := h.userUsecase.GetByID(c.Context(), userID)
+	if err != nil {
+		return response.Error(c, err)
+	}
+
+	return response.Success(c, http.StatusOK, dto.UserResponse{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
 	})
 }
 

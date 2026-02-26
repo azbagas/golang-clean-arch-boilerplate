@@ -1,8 +1,10 @@
 package middleware
 
 import (
+	"net/http"
 	"strings"
 
+	"github.com/azbagas/golang-clean-arch-boilerplate/pkg/response"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -12,18 +14,12 @@ func JWTMiddleware(secret string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"success": false,
-				"error":   "missing authorization header",
-			})
+			return response.ErrorWithMessage(c, http.StatusUnauthorized, "missing authorization header")
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"success": false,
-				"error":   "invalid authorization header format",
-			})
+			return response.ErrorWithMessage(c, http.StatusUnauthorized, "invalid authorization header format")
 		}
 
 		tokenString := parts[1]
@@ -35,18 +31,12 @@ func JWTMiddleware(secret string) fiber.Handler {
 		})
 
 		if err != nil || !token.Valid {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"success": false,
-				"error":   "invalid or expired token",
-			})
+			return response.ErrorWithMessage(c, http.StatusUnauthorized, "invalid or expired token")
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"success": false,
-				"error":   "invalid token claims",
-			})
+			return response.ErrorWithMessage(c, http.StatusUnauthorized, "invalid token claims")
 		}
 
 		// Set user info in Fiber locals for downstream handlers

@@ -63,24 +63,48 @@ func (h *UserHandler) Create(c *fiber.Ctx) error {
 
 // GetAll godoc
 // @Summary      Get all users
-// @Description  Retrieve a list of all users
+// @Description  Retrieve a paginated list of users
 // @Tags         users
 // @Produce      json
-// @Success      200 {object} response.SuccessResponse{data=[]dto.UserResponse}
+// @Param        page query int false "Page number (default: 1)"
+// @Param        page_size query int false "Items per page (default: 10, max: 100)"
+// @Success      200 {object} response.PaginatedResponse{data=[]dto.UserResponse}
 // @Security     BearerAuth
 // @Router       /api/v1/users [get]
 func (h *UserHandler) GetAll(c *fiber.Ctx) error {
-	users, err := h.userUsecase.GetAll(c.Context())
+	page := c.QueryInt("page", 1)
+	pageSize := c.QueryInt("page_size", 10)
+
+	// Validate pagination parameters
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
+	params := domain.PaginationParams{
+		Page:    page,
+		PerPage: pageSize,
+	}
+
+	result, err := h.userUsecase.GetAll(c.Context(), params)
 	if err != nil {
 		return response.Error(c, err)
 	}
 
+	// Map domain users to DTOs
+	users := result.Data.([]domain.User)
 	var userResponses []dto.UserResponse
 	for _, user := range users {
 		userResponses = append(userResponses, toUserResponse(&user))
 	}
+	result.Data = userResponses
 
-	return response.Success(c, http.StatusOK, userResponses)
+	return response.SuccessWithPagination(c, http.StatusOK, result)
 }
 
 // GetByID godoc

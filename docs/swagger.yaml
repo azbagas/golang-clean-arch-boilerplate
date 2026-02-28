@@ -1,5 +1,20 @@
 basePath: /
 definitions:
+  domain.PaginationMeta:
+    properties:
+      has_next:
+        type: boolean
+      has_prev:
+        type: boolean
+      page:
+        type: integer
+      per_page:
+        type: integer
+      total_items:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
   dto.CreateUserRequest:
     properties:
       email:
@@ -111,6 +126,15 @@ definitions:
         type: string
       success:
         example: false
+        type: boolean
+    type: object
+  response.PaginatedResponse:
+    properties:
+      data: {}
+      pagination:
+        $ref: '#/definitions/domain.PaginationMeta'
+      success:
+        example: true
         type: boolean
     type: object
   response.SuccessResponse:
@@ -269,7 +293,16 @@ paths:
       - auth
   /api/v1/users:
     get:
-      description: Retrieve a list of all users
+      description: Retrieve a paginated list of users
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: page_size
+        type: integer
       produces:
       - application/json
       responses:
@@ -277,7 +310,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.SuccessResponse'
+            - $ref: '#/definitions/response.PaginatedResponse'
             - properties:
                 data:
                   items:

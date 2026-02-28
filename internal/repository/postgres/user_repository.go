@@ -52,13 +52,23 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	return &user, nil
 }
 
-func (r *userRepository) GetAll(ctx context.Context) ([]domain.User, error) {
+func (r *userRepository) GetAll(ctx context.Context, params domain.PaginationParams) (*domain.PaginatedResult, error) {
 	var users []domain.User
-	result := r.db.WithContext(ctx).Find(&users)
+	var totalItems int64
+
+	if err := r.db.WithContext(ctx).Model(&domain.User{}).Count(&totalItems).Error; err != nil {
+		return nil, err
+	}
+
+	result := r.db.WithContext(ctx).
+		Offset(params.GetOffset()).
+		Limit(params.PerPage).
+		Find(&users)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	return users, nil
+
+	return domain.NewPaginatedResult(users, totalItems, params), nil
 }
 
 func (r *userRepository) Update(ctx context.Context, user *domain.User) error {

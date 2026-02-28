@@ -8,6 +8,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// PaginatedResponse is the schema for paginated 2xx responses.
+type PaginatedResponse struct {
+	Success    bool                  `json:"success" example:"true"`
+	Data       interface{}           `json:"data"`
+	Pagination domain.PaginationMeta `json:"pagination"`
+}
+
 // SuccessResponse is the schema for 2xx responses
 type SuccessResponse struct {
 	Success bool        `json:"success" example:"true"`
@@ -25,6 +32,15 @@ func Success(c *fiber.Ctx, statusCode int, data interface{}) error {
 	return c.Status(statusCode).JSON(SuccessResponse{
 		Success: true,
 		Data:    data,
+	})
+}
+
+// SuccessWithPagination sends a successful JSON response with pagination metadata.
+func SuccessWithPagination(c *fiber.Ctx, statusCode int, result *domain.PaginatedResult) error {
+	return c.Status(statusCode).JSON(PaginatedResponse{
+		Success:    true,
+		Data:       result.Data,
+		Pagination: result.Pagination,
 	})
 }
 

@@ -66,25 +66,66 @@ func TestUserHandler_Create(t *testing.T) {
 }
 
 func TestUserHandler_GetAll(t *testing.T) {
-	app, mockUsecase := setupUserTestApp()
+	t.Run("success with default pagination", func(t *testing.T) {
+		app, mockUsecase := setupUserTestApp()
 
-	users := []domain.User{
-		{ID: 1, Name: "John", Email: "john@example.com", CreatedAt: time.Now(), UpdatedAt: time.Now()},
-		{ID: 2, Name: "Jane", Email: "jane@example.com", CreatedAt: time.Now(), UpdatedAt: time.Now()},
-	}
+		users := []domain.User{
+			{ID: 1, Name: "John", Email: "john@example.com", CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			{ID: 2, Name: "Jane", Email: "jane@example.com", CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		}
 
-	mockUsecase.On("GetAll", mock.Anything).Return(users, nil).Once()
+		expectedParams := domain.PaginationParams{Page: 1, PerPage: 10}
+		paginatedResult := domain.NewPaginatedResult(users, 2, expectedParams)
 
-	req := httptest.NewRequest(http.MethodGet, "/users", nil)
-	resp, err := app.Test(req)
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+		mockUsecase.On("GetAll", mock.Anything, expectedParams).Return(paginatedResult, nil).Once()
 
-	var res response.SuccessResponse
-	respBody, _ := io.ReadAll(resp.Body)
-	json.Unmarshal(respBody, &res)
-	assert.True(t, res.Success)
-	mockUsecase.AssertExpectations(t)
+		req := httptest.NewRequest(http.MethodGet, "/users", nil)
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var res response.PaginatedResponse
+		respBody, _ := io.ReadAll(resp.Body)
+		json.Unmarshal(respBody, &res)
+		assert.True(t, res.Success)
+		assert.Equal(t, 1, res.Pagination.Page)
+		assert.Equal(t, 10, res.Pagination.PerPage)
+		assert.Equal(t, int64(2), res.Pagination.TotalItems)
+		assert.Equal(t, 1, res.Pagination.TotalPages)
+		assert.False(t, res.Pagination.HasNext)
+		assert.False(t, res.Pagination.HasPrev)
+		mockUsecase.AssertExpectations(t)
+	})
+
+	t.Run("success with custom pagination", func(t *testing.T) {
+		app, mockUsecase := setupUserTestApp()
+
+		users := []domain.User{
+			{ID: 3, Name: "Alice", Email: "alice@example.com", CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		}
+
+		expectedParams := domain.PaginationParams{Page: 2, PerPage: 5}
+		paginatedResult := domain.NewPaginatedResult(users, 6, expectedParams)
+
+		mockUsecase.On("GetAll", mock.Anything, expectedParams).Return(paginatedResult, nil).Once()
+
+		req := httptest.NewRequest(http.MethodGet, "/users?page=2&page_size=5", nil)
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var res response.PaginatedResponse
+		respBody, _ := io.ReadAll(resp.Body)
+		json.Unmarshal(respBody, &res)
+		assert.True(t, res.Success)
+		assert.Equal(t, 2, res.Pagination.Page)
+		assert.Equal(t, 5, res.Pagination.PerPage)
+		assert.Equal(t, int64(6), res.Pagination.TotalItems)
+		assert.Equal(t, 2, res.Pagination.TotalPages)
+		assert.False(t, res.Pagination.HasNext)
+		assert.True(t, res.Pagination.HasPrev)
+		mockUsecase.AssertExpectations(t)
+	})
 }
 
 func TestUserHandler_GetByID(t *testing.T) {

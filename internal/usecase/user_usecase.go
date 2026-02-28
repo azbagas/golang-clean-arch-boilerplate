@@ -23,8 +23,8 @@ func (u *userUsecase) GetByID(ctx context.Context, id uint) (*domain.User, error
 	return u.userRepo.GetByID(ctx, id)
 }
 
-func (u *userUsecase) GetAll(ctx context.Context) ([]domain.User, error) {
-	return u.userRepo.GetAll(ctx)
+func (u *userUsecase) GetAll(ctx context.Context, params domain.PaginationParams) (*domain.PaginatedResult, error) {
+	return u.userRepo.GetAll(ctx, params)
 }
 
 func (u *userUsecase) Update(ctx context.Context, user *domain.User) error {

@@ -80,11 +80,16 @@ func TestUserUsecase_GetAll(t *testing.T) {
 		{ID: 2, Name: "Jane Doe", Email: "jane@example.com"},
 	}
 
-	mockRepo.On("GetAll", ctx).Return(expectedUsers, nil).Once()
+	params := domain.PaginationParams{Page: 1, PerPage: 10}
+	expectedResult := domain.NewPaginatedResult(expectedUsers, 2, params)
 
-	users, err := uc.GetAll(ctx)
+	mockRepo.On("GetAll", ctx, params).Return(expectedResult, nil).Once()
+
+	result, err := uc.GetAll(ctx, params)
 	assert.NoError(t, err)
-	assert.Len(t, users, 2)
+	assert.Equal(t, expectedResult, result)
+	assert.Equal(t, 1, result.Pagination.Page)
+	assert.Equal(t, int64(2), result.Pagination.TotalItems)
 	mockRepo.AssertExpectations(t)
 }
 

@@ -30,12 +30,26 @@ type TokenPair struct {
 	RefreshToken string
 }
 
+// UserAllowedSortFields defines the fields that users can be sorted by.
+var UserAllowedSortFields = map[string]bool{
+	"name":       true,
+	"email":      true,
+	"created_at": true,
+}
+
+// UserListParams holds all query parameters for listing users.
+type UserListParams struct {
+	PaginationParams
+	SortParams
+	Search string
+}
+
 // UserRepository defines the interface for user data access.
 type UserRepository interface {
 	Create(ctx context.Context, user *User) error
 	GetByID(ctx context.Context, id uint) (*User, error)
 	GetByEmail(ctx context.Context, email string) (*User, error)
-	GetAll(ctx context.Context, params PaginationParams) (*PaginatedResult, error)
+	GetAll(ctx context.Context, params UserListParams) (*PaginatedResult, error)
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, id uint) error
 }
@@ -51,7 +65,7 @@ type RefreshTokenRepository interface {
 type UserUsecase interface {
 	Create(ctx context.Context, user *User) error
 	GetByID(ctx context.Context, id uint) (*User, error)
-	GetAll(ctx context.Context, params PaginationParams) (*PaginatedResult, error)
+	GetAll(ctx context.Context, params UserListParams) (*PaginatedResult, error)
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, id uint) error
 }

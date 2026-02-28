@@ -63,32 +63,28 @@ func (h *UserHandler) Create(c *fiber.Ctx) error {
 
 // GetAll godoc
 // @Summary      Get all users
-// @Description  Retrieve a paginated list of users
+// @Description  Retrieve a paginated list of users with optional sorting and search
 // @Tags         users
 // @Produce      json
 // @Param        page query int false "Page number (default: 1)"
 // @Param        page_size query int false "Items per page (default: 10, max: 100)"
+// @Param        sort_by query string false "Sort field (name, email, created_at)"
+// @Param        sort_order query string false "Sort order (asc, desc; default: asc)"
+// @Param        search query string false "Search by name or email"
 // @Success      200 {object} response.PaginatedResponse{data=[]dto.UserResponse}
+// @Failure      400 {object} response.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/users [get]
 func (h *UserHandler) GetAll(c *fiber.Ctx) error {
-	page := c.QueryInt("page", 1)
-	pageSize := c.QueryInt("page_size", 10)
-
-	// Validate pagination parameters
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 {
-		pageSize = 10
-	}
-	if pageSize > 100 {
-		pageSize = 100
+	sortParams, err := domain.NewSortParams(c.Query("sort_by"), c.Query("sort_order", "asc"), domain.UserAllowedSortFields)
+	if err != nil {
+		return response.ErrorWithMessage(c, http.StatusBadRequest, err.Error())
 	}
 
-	params := domain.PaginationParams{
-		Page:    page,
-		PerPage: pageSize,
+	params := domain.UserListParams{
+		PaginationParams: domain.NewPaginationParams(c.QueryInt("page", 1), c.QueryInt("page_size", 10)),
+		SortParams:       sortParams,
+		Search:           c.Query("search"),
 	}
 
 	result, err := h.userUsecase.GetAll(c.Context(), params)

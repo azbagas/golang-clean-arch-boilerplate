@@ -131,10 +131,26 @@ The API uses **short-lived access tokens** (JWT, 15 min) and **long-lived refres
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/v1/users` | Create a user |
-| GET | `/api/v1/users` | Get all users |
+| GET | `/api/v1/users` | Get all users (paginated, sortable, searchable) |
 | GET | `/api/v1/users/:id` | Get user by ID |
 | PUT | `/api/v1/users/:id` | Update a user |
 | DELETE | `/api/v1/users/:id` | Delete a user |
+
+#### Query Parameters for `GET /api/v1/users`
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `page` | `1` | Page number (≥ 1) |
+| `page_size` | `10` | Items per page (1–100) |
+| `sort_by` | — | Sort field: `name`, `email`, `created_at` |
+| `sort_order` | `asc` | Sort direction: `asc` or `desc` |
+| `search` | — | Search by name or email (case-insensitive) |
+
+**Example:**
+
+```
+GET /api/v1/users?page=1&page_size=10&sort_by=name&sort_order=desc&search=john
+```
 
 ### Swagger UI
 

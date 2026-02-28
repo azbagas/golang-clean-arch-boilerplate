@@ -52,15 +52,30 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	return &user, nil
 }
 
-func (r *userRepository) GetAll(ctx context.Context, params domain.PaginationParams) (*domain.PaginatedResult, error) {
+func (r *userRepository) GetAll(ctx context.Context, params domain.UserListParams) (*domain.PaginatedResult, error) {
 	var users []domain.User
 	var totalItems int64
 
-	if err := r.db.WithContext(ctx).Model(&domain.User{}).Count(&totalItems).Error; err != nil {
+	query := r.db.WithContext(ctx).Model(&domain.User{})
+
+	// Apply search filter
+	if params.Search != "" {
+		search := "%" + params.Search + "%"
+		query = query.Where("name ILIKE ? OR email ILIKE ?", search, search)
+	}
+
+	// Count total items (with filters applied)
+	if err := query.Count(&totalItems).Error; err != nil {
 		return nil, err
 	}
 
-	result := r.db.WithContext(ctx).
+	// Apply sorting
+	if params.SortBy != "" {
+		query = query.Order(params.SortBy + " " + params.SortOrder)
+	}
+
+	// Apply pagination
+	result := query.
 		Offset(params.GetOffset()).
 		Limit(params.PerPage).
 		Find(&users)
@@ -68,7 +83,7 @@ func (r *userRepository) GetAll(ctx context.Context, params domain.PaginationPar
 		return nil, result.Error
 	}
 
-	return domain.NewPaginatedResult(users, totalItems, params), nil
+	return domain.NewPaginatedResult(users, totalItems, params.PaginationParams), nil
 }
 
 func (r *userRepository) Update(ctx context.Context, user *domain.User) error {

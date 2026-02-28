@@ -80,8 +80,10 @@ func TestUserUsecase_GetAll(t *testing.T) {
 		{ID: 2, Name: "Jane Doe", Email: "jane@example.com"},
 	}
 
-	params := domain.PaginationParams{Page: 1, PerPage: 10}
-	expectedResult := domain.NewPaginatedResult(expectedUsers, 2, params)
+	params := domain.UserListParams{
+		PaginationParams: domain.PaginationParams{Page: 1, PerPage: 10},
+	}
+	expectedResult := domain.NewPaginatedResult(expectedUsers, 2, params.PaginationParams)
 
 	mockRepo.On("GetAll", ctx, params).Return(expectedResult, nil).Once()
 

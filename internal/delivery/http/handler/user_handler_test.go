@@ -74,8 +74,11 @@ func TestUserHandler_GetAll(t *testing.T) {
 			{ID: 2, Name: "Jane", Email: "jane@example.com", CreatedAt: time.Now(), UpdatedAt: time.Now()},
 		}
 
-		expectedParams := domain.PaginationParams{Page: 1, PerPage: 10}
-		paginatedResult := domain.NewPaginatedResult(users, 2, expectedParams)
+		expectedParams := domain.UserListParams{
+			PaginationParams: domain.PaginationParams{Page: 1, PerPage: 10},
+			SortParams:       domain.SortParams{SortOrder: "asc"},
+		}
+		paginatedResult := domain.NewPaginatedResult(users, 2, expectedParams.PaginationParams)
 
 		mockUsecase.On("GetAll", mock.Anything, expectedParams).Return(paginatedResult, nil).Once()
 
@@ -97,19 +100,23 @@ func TestUserHandler_GetAll(t *testing.T) {
 		mockUsecase.AssertExpectations(t)
 	})
 
-	t.Run("success with custom pagination", func(t *testing.T) {
+	t.Run("success with sort and search", func(t *testing.T) {
 		app, mockUsecase := setupUserTestApp()
 
 		users := []domain.User{
-			{ID: 3, Name: "Alice", Email: "alice@example.com", CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			{ID: 1, Name: "John", Email: "john@example.com", CreatedAt: time.Now(), UpdatedAt: time.Now()},
 		}
 
-		expectedParams := domain.PaginationParams{Page: 2, PerPage: 5}
-		paginatedResult := domain.NewPaginatedResult(users, 6, expectedParams)
+		expectedParams := domain.UserListParams{
+			PaginationParams: domain.PaginationParams{Page: 1, PerPage: 10},
+			SortParams:       domain.SortParams{SortBy: "name", SortOrder: "desc"},
+			Search:           "john",
+		}
+		paginatedResult := domain.NewPaginatedResult(users, 1, expectedParams.PaginationParams)
 
 		mockUsecase.On("GetAll", mock.Anything, expectedParams).Return(paginatedResult, nil).Once()
 
-		req := httptest.NewRequest(http.MethodGet, "/users?page=2&page_size=5", nil)
+		req := httptest.NewRequest(http.MethodGet, "/users?sort_by=name&sort_order=desc&search=john", nil)
 		resp, err := app.Test(req)
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -118,13 +125,22 @@ func TestUserHandler_GetAll(t *testing.T) {
 		respBody, _ := io.ReadAll(resp.Body)
 		json.Unmarshal(respBody, &res)
 		assert.True(t, res.Success)
-		assert.Equal(t, 2, res.Pagination.Page)
-		assert.Equal(t, 5, res.Pagination.PerPage)
-		assert.Equal(t, int64(6), res.Pagination.TotalItems)
-		assert.Equal(t, 2, res.Pagination.TotalPages)
-		assert.False(t, res.Pagination.HasNext)
-		assert.True(t, res.Pagination.HasPrev)
 		mockUsecase.AssertExpectations(t)
+	})
+
+	t.Run("invalid sort_by field returns bad request", func(t *testing.T) {
+		app, _ := setupUserTestApp()
+
+		req := httptest.NewRequest(http.MethodGet, "/users?sort_by=password", nil)
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+		var res response.ErrorResponse
+		respBody, _ := io.ReadAll(resp.Body)
+		json.Unmarshal(respBody, &res)
+		assert.False(t, res.Success)
+		assert.Equal(t, "invalid sort_by field", res.Error)
 	})
 }
 

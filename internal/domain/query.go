@@ -13,6 +13,38 @@ func (p PaginationParams) GetOffset() int {
 	return (p.Page - 1) * p.PerPage
 }
 
+// NewPaginationParams creates a PaginationParams with validated/clamped values.
+func NewPaginationParams(page, perPage int) PaginationParams {
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 {
+		perPage = 10
+	}
+	if perPage > 100 {
+		perPage = 100
+	}
+	return PaginationParams{Page: page, PerPage: perPage}
+}
+
+// SortParams holds the sorting query parameters.
+type SortParams struct {
+	SortBy    string
+	SortOrder string // "asc" or "desc"
+}
+
+// NewSortParams creates a SortParams with validated values.
+// It returns ErrInvalidSortField if sortBy is not in the allowedFields.
+func NewSortParams(sortBy, sortOrder string, allowedFields map[string]bool) (SortParams, error) {
+	if sortBy != "" && !allowedFields[sortBy] {
+		return SortParams{}, ErrInvalidSortField
+	}
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "asc"
+	}
+	return SortParams{SortBy: sortBy, SortOrder: sortOrder}, nil
+}
+
 // PaginationMeta holds the pagination metadata.
 type PaginationMeta struct {
 	Page       int   `json:"page"`

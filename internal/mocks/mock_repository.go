@@ -33,7 +33,7 @@ func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (*dom
 	return args.Get(0).(*domain.User), args.Error(1)
 }
 
-func (m *MockUserRepository) GetAll(ctx context.Context, params domain.PaginationParams) (*domain.PaginatedResult, error) {
+func (m *MockUserRepository) GetAll(ctx context.Context, params domain.UserListParams) (*domain.PaginatedResult, error) {
 	args := m.Called(ctx, params)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -92,7 +92,7 @@ func (m *MockUserUsecase) GetByID(ctx context.Context, id uint) (*domain.User, e
 	return args.Get(0).(*domain.User), args.Error(1)
 }
 
-func (m *MockUserUsecase) GetAll(ctx context.Context, params domain.PaginationParams) (*domain.PaginatedResult, error) {
+func (m *MockUserUsecase) GetAll(ctx context.Context, params domain.UserListParams) (*domain.PaginatedResult, error) {
 	args := m.Called(ctx, params)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)

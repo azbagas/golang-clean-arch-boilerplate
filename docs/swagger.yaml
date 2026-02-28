@@ -293,7 +293,7 @@ paths:
       - auth
   /api/v1/users:
     get:
-      description: Retrieve a paginated list of users
+      description: Retrieve a paginated list of users with optional sorting and search
       parameters:
       - description: 'Page number (default: 1)'
         in: query
@@ -303,6 +303,18 @@ paths:
         in: query
         name: page_size
         type: integer
+      - description: Sort field (name, email, created_at)
+        in: query
+        name: sort_by
+        type: string
+      - description: 'Sort order (asc, desc; default: asc)'
+        in: query
+        name: sort_order
+        type: string
+      - description: Search by name or email
+        in: query
+        name: search
+        type: string
       produces:
       - application/json
       responses:
@@ -317,6 +329,10 @@ paths:
                     $ref: '#/definitions/dto.UserResponse'
                   type: array
               type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get all users

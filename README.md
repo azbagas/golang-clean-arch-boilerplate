@@ -1,6 +1,6 @@
 # 🏗️ Golang Clean Architecture Boilerplate
 
-A **production-ready** Go REST API boilerplate following Clean Architecture principles. Built with Fiber, GORM, PostgreSQL, JWT authentication (access + refresh tokens), and Swagger docs.
+A **production-ready** Go REST API boilerplate following Clean Architecture principles. Features user CRUD operations, paginated listing with sorting and search, JWT authentication (access + refresh tokens via HttpOnly cookies), and auto-generated Swagger docs. Built with Fiber, GORM, and PostgreSQL.
 
 ## 🏛️ Architecture
 

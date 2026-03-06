@@ -1,6 +1,9 @@
 package domain
 
-import "math"
+import (
+	"errors"
+	"math"
+)
 
 // PaginationParams holds the pagination query parameters.
 type PaginationParams struct {
@@ -34,10 +37,9 @@ type SortParams struct {
 }
 
 // NewSortParams creates a SortParams with validated values.
-// It returns ErrInvalidSortField if sortBy is not in the allowedFields.
 func NewSortParams(sortBy, sortOrder string, allowedFields map[string]bool) (SortParams, error) {
 	if sortBy != "" && !allowedFields[sortBy] {
-		return SortParams{}, ErrInvalidSortField
+		return SortParams{}, errors.New("invalid sort_by field")
 	}
 	if sortOrder != "asc" && sortOrder != "desc" {
 		sortOrder = "asc"
